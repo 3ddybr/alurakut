@@ -1,3 +1,5 @@
+import nookies from 'nookies';
+import jwt from 'jsonwebtoken'
 import { MainGrid } from '../components/MainGrid'
 import { Box } from '../components/Box'
 import {AlurakutMenu, AlurakutProfileSidebarMenuDefault, OrkutNostalgicIconSet} from '../lib/AlurakutCommons'
@@ -46,10 +48,10 @@ function ProfileRelationsBox (props) {
   )
 }
 
-export default function Home() {
+export default function Home(props) {
+  const githubUser = props.githubUser;
 
   const [comunidades, setComunidades] =useState([]);
-  const githubUser = '3ddybr';
   const usersFavoritos = [
     'juunegreiros',
     'omariosouto',
@@ -140,7 +142,8 @@ export default function Home() {
               body:JSON.stringify(comunidade)
             }).then(async (response) =>{
               const dados =await response.json();
-              console.log(dados);
+              console.log(dados.registroCriado);
+              const comunidade = dados.registroCriado;
               const comunidadesAtualizadas = [...comunidades, comunidade];
               setComunidades(comunidadesAtualizadas)
             })
@@ -224,4 +227,34 @@ export default function Home() {
     </MainGrid>
     </>
   )
+}
+
+export async function getServerSideProps(context) {
+  const cookies = nookies.get(context);
+  const token = cookies.USER_TOKEN;
+  // console.log ('Cookies',jwt.decode(token))
+
+  const {isAuthenticated} = await fetch('http://localhost:3000/api/auth', {
+    headers: {
+      Authorization: token
+    }
+  })
+  .then((resposta) => resposta.json())
+console.log('isAuthenticated', isAuthenticated)
+  
+  if(!isAuthenticated) {
+    return {
+      redirect: {
+        destination: '/login',
+        permanent: false,
+      }
+    }
+  }
+  const {githubUser} = jwt.decode(token);
+
+  return {
+    props: {
+      githubUser
+    },
+  }
 }
